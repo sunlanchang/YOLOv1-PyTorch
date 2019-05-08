@@ -1,0 +1,15 @@
+第 1 poch训练时间：0h
+第 1 epoch验证时间：0h
+
+第 2 poch训练时间：0h
+第 2 epoch验证时间：0h
+
+第 3 poch训练时间：0h
+第 3 epoch验证时间：0h
+
+第 4 poch训练时间：0h
+第 4 epoch验证时间：0h
+
+第 5 poch训练时间：0h
+第 5 epoch验证时间：0h
+

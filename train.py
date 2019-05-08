@@ -11,6 +11,8 @@ from torch.utils.data import DataLoader
 import torch.nn as nn
 import torch
 import os
+import time
+
 os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 
 
@@ -21,7 +23,7 @@ train_file_root = '../data/VOC2012trainval/JPEGImages/'
 validation_file_root = '../data/VOC2007test/JPEGImages/'
 # learning_rate = 0.001
 learning_rate = 0.1
-num_epochs = 1
+num_epochs = 5
 batch_size = 5
 use_resnet = True
 if use_resnet:
@@ -70,7 +72,7 @@ else:
 if False:
     net.load_state_dict(torch.load('best.pth'))
 if torch.cuda.is_available():
-    print('cuda', torch.cuda.current_device(), torch.cuda.device_count())
+    print('第{}GPU, 共有{}块GPU'.format(torch.cuda.current_device(), torch.cuda.device_count()))
 
 criterion = yoloLoss(7, 2, 5, 0.5)
 if use_gpu:
@@ -105,12 +107,14 @@ test_loader = DataLoader(
     test_dataset, batch_size=3, shuffle=False)
 print('the dataset has %d images' % (len(train_dataset)))
 print('the batch_size is %d' % (batch_size))
-logfile = open('log.txt', 'w')
+logfile = open('log.txt', 'a')
 
 num_iter = 0
 vis = Visualizer(env='main')
 best_test_loss = np.inf
 
+train_time_file = open("train_time.txt","w")
+start_time = time.time()
 for epoch in range(num_epochs):
     net.train()
     # if epoch == 1:
@@ -156,9 +160,14 @@ for epoch in range(num_epochs):
             vis.plot_train_val(loss_train=total_loss/(i+1))
 
         control_train += 1
-        if control_train == 10:
+        if control_train == 2:
             # break
             pass
+
+    train_time = time.time()-start_time
+    train_time_file.write("第 {} poch训练时间：{}h\n".format(epoch+1, int(train_time/60/60)))
+    start_time = time.time()
+    
     # validation
     validation_loss = 0.0
     net.eval()
@@ -180,9 +189,9 @@ for epoch in range(num_epochs):
             # validation_loss += loss.data[0]
             validation_loss += loss.data.item()
             control_validation += 1
-            if control_validation == 100:
-                break
-            # pass
+            if control_validation == 2:
+                # break
+                pass
 
     validation_loss /= len(test_loader)
     vis.plot_train_val(loss_val=validation_loss)
@@ -194,3 +203,7 @@ for epoch in range(num_epochs):
     logfile.writelines(str(epoch) + '\t' + str(validation_loss) + '\n')
     logfile.flush()
     torch.save(net.state_dict(), '../YOLO_model/yolo.pth')
+    validation_time = time.time()-start_time
+    train_time_file.write("第 {} epoch验证时间：{}h\n\n".format(epoch+1, int(validation_time/60/60)))
+logfile.close()
+train_time_file.close()
