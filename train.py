@@ -22,7 +22,7 @@ validation_file_root = '../data/VOC2007test/JPEGImages/'
 # learning_rate = 0.001
 learning_rate = 0.1
 num_epochs = 1
-batch_size = 8
+batch_size = 5
 use_resnet = True
 if use_resnet:
     net = resnet50()
@@ -101,7 +101,8 @@ test_dataset = yoloDataset(root=validation_file_root, list_file='../data/voc2007
                            train=False, transform=[transforms.ToTensor()])
 test_loader = DataLoader(
     # test_dataset, batch_size=batch_size, shuffle=False, num_workers=4)
-    test_dataset, batch_size=batch_size, shuffle=False)
+    # test_dataset, batch_size=batch_size, shuffle=False)
+    test_dataset, batch_size=3, shuffle=False)
 print('the dataset has %d images' % (len(train_dataset)))
 print('the batch_size is %d' % (batch_size))
 logfile = open('log.txt', 'w')
@@ -153,29 +154,43 @@ for epoch in range(num_epochs):
                   % (epoch+1, num_epochs, i+1, len(train_loader), loss.data.item(), total_loss / (i+1)))
             num_iter += 1
             vis.plot_train_val(loss_train=total_loss/(i+1))
+
         control_train += 1
         if control_train == 10:
-            break
+            # break
+            pass
     # validation
     validation_loss = 0.0
     net.eval()
-    for i, (images, target) in enumerate(test_loader):
-        images = Variable(images, volatile=True)
-        target = Variable(target, volatile=True)
-        if use_gpu:
-            images, target = images.cuda(), target.cuda()
 
-        pred = net(images)
-        loss = criterion(pred, target)
-        # validation_loss += loss.data[0]
-        validation_loss += loss.data.item()
+    # 控制验证次数
+    with torch.no_grad():
+        control_validation = 0
+        for i, (images, target) in enumerate(test_loader):
+            # images = Variable(images, volatile=True)
+            # target = Variable(target, volatile=True)
+            images = Variable(images)
+            target = Variable(target)
+            if use_gpu:
+                images, target = images.cuda(), target.cuda()
+
+            pred = net(images)
+            loss = criterion(pred, target)
+
+            # validation_loss += loss.data[0]
+            validation_loss += loss.data.item()
+            control_validation += 1
+            if control_validation == 100:
+                break
+            # pass
+
     validation_loss /= len(test_loader)
     vis.plot_train_val(loss_val=validation_loss)
 
     if best_test_loss > validation_loss:
         best_test_loss = validation_loss
         print('get best test loss %.5f' % best_test_loss)
-        torch.save(net.state_dict(), 'best.pth')
+        torch.save(net.state_dict(), '../YOLO_model/best.pth')
     logfile.writelines(str(epoch) + '\t' + str(validation_loss) + '\n')
     logfile.flush()
-    torch.save(net.state_dict(), 'yolo.pth')
+    torch.save(net.state_dict(), '../YOLO_model/yolo.pth')
