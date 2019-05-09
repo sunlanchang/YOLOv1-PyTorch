@@ -2,3 +2,4 @@ __pycache__
 yolo.pth
 best.pth
 log.txt
+.vscode

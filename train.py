@@ -70,9 +70,10 @@ else:
             dd[k] = new_state_dict[k]
     net.load_state_dict(dd)
 if False:
-    net.load_state_dict(torch.load('best.pth'))
+    net.load_state_dict(torch.load('../YOLO_model/best.pth'))
 if torch.cuda.is_available():
-    print('第{}GPU, 共有{}块GPU'.format(torch.cuda.current_device(), torch.cuda.device_count()))
+    print('第 {} GPU, 共有 {} 块GPU'.format(
+        torch.cuda.current_device(), torch.cuda.device_count()))
 
 criterion = yoloLoss(7, 2, 5, 0.5)
 if use_gpu:
@@ -107,13 +108,13 @@ test_loader = DataLoader(
     test_dataset, batch_size=3, shuffle=False)
 print('the dataset has %d images' % (len(train_dataset)))
 print('the batch_size is %d' % (batch_size))
-logfile = open('log.txt', 'a')
+logfile = open('log.txt', 'w')
 
 num_iter = 0
 vis = Visualizer(env='main')
 best_test_loss = np.inf
 
-train_time_file = open("train_time.txt","w")
+train_time_file = open("train_time.txt", "w")
 start_time = time.time()
 for epoch in range(num_epochs):
     net.train()
@@ -143,14 +144,17 @@ for epoch in range(num_epochs):
         target = Variable(target)
         if use_gpu:
             images, target = images.cuda(), target.cuda()
-
+        # 前向传播
         pred = net(images)
+        # 计算误差
         loss = criterion(pred, target)
         # total_loss += loss.data[0]
         total_loss += loss.data.item()
 
         optimizer.zero_grad()
+        # 后向传播一次
         loss.backward()
+        # 参数更新
         optimizer.step()
         if (i+1) % 1 == 0:
             print('Epoch [%d/%d], Iter [%d/%d] Loss: %.4f, average_loss: %.4f'
@@ -160,20 +164,22 @@ for epoch in range(num_epochs):
             vis.plot_train_val(loss_train=total_loss/(i+1))
 
         control_train += 1
-        if control_train == 2:
-            # break
-            pass
+        if control_train == 5:
+            break
+            # pass
 
     train_time = time.time()-start_time
-    train_time_file.write("第 {} poch训练时间：{}h\n".format(epoch+1, int(train_time/60/60)))
+    train_time_file.write("第 {} poch训练时间：{} hour\n".format(
+        epoch+1, float(train_time)/60/60))
     start_time = time.time()
-    
+
     # validation
     validation_loss = 0.0
+    # dropout层及batch normalization层进入 evalution 模态
     net.eval()
 
-    # 控制验证次数
     with torch.no_grad():
+        # 控制验证次数
         control_validation = 0
         for i, (images, target) in enumerate(test_loader):
             # images = Variable(images, volatile=True)
@@ -189,9 +195,9 @@ for epoch in range(num_epochs):
             # validation_loss += loss.data[0]
             validation_loss += loss.data.item()
             control_validation += 1
-            if control_validation == 2:
-                # break
-                pass
+            if control_validation == 5:
+                break
+                # pass
 
     validation_loss /= len(test_loader)
     vis.plot_train_val(loss_val=validation_loss)
@@ -200,10 +206,12 @@ for epoch in range(num_epochs):
         best_test_loss = validation_loss
         print('get best test loss %.5f' % best_test_loss)
         torch.save(net.state_dict(), '../YOLO_model/best.pth')
-    logfile.writelines(str(epoch) + '\t' + str(validation_loss) + '\n')
+    logfile.writelines(
+        "epoch: {}  validation loss: {} \n".format(epoch, validation_loss))
     logfile.flush()
     torch.save(net.state_dict(), '../YOLO_model/yolo.pth')
     validation_time = time.time()-start_time
-    train_time_file.write("第 {} epoch验证时间：{}h\n\n".format(epoch+1, int(validation_time/60/60)))
+    train_time_file.write("第 {} epoch验证时间：{} hour\n\n".format(
+        epoch+1, float(validation_time)/60/60))
 logfile.close()
 train_time_file.close()
