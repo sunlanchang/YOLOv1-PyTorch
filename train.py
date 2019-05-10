@@ -28,6 +28,7 @@ num_epochs = 5
 batch_size = 5
 use_resnet = True
 if use_resnet:
+    # 有det_bottlenet
     net = resnet50()
 else:
     net = vgg16_bn()
@@ -48,28 +49,38 @@ else:
 #         m.weight.data.normal_(0, 0.01)
 #         m.bias.data.zero_()
 # net.load_state_dict(torch.load('yolo.pth'))
-print(net)
-pdb.set_trace()
+
+# print(net)
+# for key in net.state_dict().keys():
+#     print(key)
+# pdb.set_trace()
 print('load pre-trined model')
 if use_resnet:
+    # 没有det_bottlenet，有全连接层
     resnet_pretrained = models.resnet50(pretrained=True)
-    state_dict_pretrained = resnet_pretrained.state_dict()
+    pretrained_state_dict = resnet_pretrained.state_dict()
     net_state_dict = net.state_dict()
-    for k in state_dict_pretrained.keys():
-        # print(k)
-        if k in net_state_dict.keys() and not k.startswith('fc'):
-            # print('yes')
-            net_state_dict[k] = state_dict_pretrained[k]
+    # print("net有 预训练后没有的")
+    # for key in net_state_dict.keys():
+    #     if key not in pretrained_state_dict.keys():
+    #         print(key)
+    pdb.set_trace()
+    for key in pretrained_state_dict.keys():
+        # print(key)
+        # if key not in net_state_dict.keys():
+        #     print("预训练网络有，net没有的：", key)
+        if key in net_state_dict.keys() and not key.startswith('fc'):
+            net_state_dict[key] = pretrained_state_dict[key]
     net.load_state_dict(net_state_dict)
 else:
     vgg = models.vgg16_bn(pretrained=True)
     new_state_dict = vgg.state_dict()
     net_state_dict = net.state_dict()
-    for k in new_state_dict.keys():
-        # print(k)
-        if k in net_state_dict.keys() and k.startswith('features'):
+    for key in new_state_dict.keys():
+        # print(key)
+        if key in net_state_dict.keys() and key.startswith('features'):
             # print('yes')
-            net_state_dict[k] = new_state_dict[k]
+            net_state_dict[key] = new_state_dict[key]
     net.load_state_dict(net_state_dict)
 if False:
     net.load_state_dict(torch.load('../YOLO_model/best.pth'))
