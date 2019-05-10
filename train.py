@@ -1,3 +1,4 @@
+import pdb
 import numpy as np
 from visualize import Visualizer
 from dataset import yoloDataset
@@ -46,29 +47,30 @@ else:
 #     if isinstance(m, nn.Linear):
 #         m.weight.data.normal_(0, 0.01)
 #         m.bias.data.zero_()
-# print(net)
 # net.load_state_dict(torch.load('yolo.pth'))
+print(net)
+pdb.set_trace()
 print('load pre-trined model')
 if use_resnet:
-    resnet = models.resnet50(pretrained=True)
-    new_state_dict = resnet.state_dict()
-    dd = net.state_dict()
-    for k in new_state_dict.keys():
+    resnet_pretrained = models.resnet50(pretrained=True)
+    state_dict_pretrained = resnet_pretrained.state_dict()
+    net_state_dict = net.state_dict()
+    for k in state_dict_pretrained.keys():
         # print(k)
-        if k in dd.keys() and not k.startswith('fc'):
+        if k in net_state_dict.keys() and not k.startswith('fc'):
             # print('yes')
-            dd[k] = new_state_dict[k]
-    net.load_state_dict(dd)
+            net_state_dict[k] = state_dict_pretrained[k]
+    net.load_state_dict(net_state_dict)
 else:
     vgg = models.vgg16_bn(pretrained=True)
     new_state_dict = vgg.state_dict()
-    dd = net.state_dict()
+    net_state_dict = net.state_dict()
     for k in new_state_dict.keys():
         # print(k)
-        if k in dd.keys() and k.startswith('features'):
+        if k in net_state_dict.keys() and k.startswith('features'):
             # print('yes')
-            dd[k] = new_state_dict[k]
-    net.load_state_dict(dd)
+            net_state_dict[k] = new_state_dict[k]
+    net.load_state_dict(net_state_dict)
 if False:
     net.load_state_dict(torch.load('../YOLO_model/best.pth'))
 if torch.cuda.is_available():
